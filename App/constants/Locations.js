@@ -4,7 +4,6 @@ export const LOCATIONS = [
     id: 'flint',
     name: 'Flint Hall',
     description: 'Study area in Flint Hall',
-    // image: require('../assets/locations/flint.jpg'), // Uncomment when images are added
     coordinates: {
       latitude: 43.0014,
       longitude: -78.7890,
@@ -14,7 +13,6 @@ export const LOCATIONS = [
     id: 'ow',
     name: 'O\'Brian Hall',
     description: 'Study space in O\'Brian Hall',
-    // image: require('../assets/locations/ow.jpg'), // Uncomment when images are added
     coordinates: {
       latitude: 43.0018,
       longitude: -78.7895,
@@ -54,7 +52,7 @@ export const LOCATIONS = [
 
 // Mock crowd data - this will be replaced with real-time YOLO detection data
 export const getCrowdLevel = (locationId) => {
-  // This will be replaced with API call to your server
+  // This will be replaced with API call to our server
   const mockData = {
     flint: { count: 4, level: 'low', lastUpdated: new Date() },
     ow: { count: 16, level: 'medium', lastUpdated: new Date() },
