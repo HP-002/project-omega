@@ -3,3 +3,6 @@
 
 *.mov
 *.pt
+
+output/
+__pycache__/

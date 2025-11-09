@@ -7,4 +7,4 @@ async def health_check():
     """
     Health check endpoint that returns a status 200
     """
-    return {"status":"ok","message":"Server is running"}
+    return {"status":"ok","message":"Server is running!"}

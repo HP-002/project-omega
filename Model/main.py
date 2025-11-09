@@ -19,6 +19,7 @@ import cv2  # type: ignore
 from utils.image_processor import ROIImageProcessor
 from utils.model import ModelProcessor, YoloModel
 from utils.video_processor import VideoFeedWorker, spawn_video_feeds
+from utils.websocket_client import ModelWebSocketClient
 
 
 LOGGER = logging.getLogger(__name__)
@@ -43,9 +44,10 @@ ROI_CONFIG_PATH = BASE_DIR / "data/roi.json"
 OUTPUT_DIRECTORY = BASE_DIR / "output/frames"
 YOLO_WEIGHTS_PATH = BASE_DIR / "yolo12x.pt"
 YOLO_DEVICE: str | None = None  # e.g., "cpu", "cuda:0"
+MODEL_WS_URL = "ws://127.0.0.1:8000/model/ws/connect"
 
 # Sampling interval (seconds) between frames pushed by each video worker.
-FRAME_INTERVAL = 1.0
+FRAME_INTERVAL = 10.0
 
 # Maximum number of items allowed in the intermediate queues.
 QUEUE_CAPACITY = 10
@@ -78,7 +80,7 @@ def build_video_feed_map(paths: Iterable[str | int]) -> dict[str, str | int]:
     return mapping
 
 
-def create_result_handler(output_dir: Path):
+def create_result_handler(output_dir: Path, ws_client: ModelWebSocketClient | None = None):
     """
     Factory that returns a handler storing annotated frames and printing results.
     """
@@ -87,18 +89,38 @@ def create_result_handler(output_dir: Path):
     def handler(result: dict, roi_image):
         camera = result.get("camera", "unknown")
         timestamp = result.get("timestamp") or time.time()
-        inference = result.get("inference", {})
-        detections = inference.get("detections", [])
+        detections = result.get("inference", {}).get("detections", [])
+        occupancies = result.get("occupancies", [])
+        segments = result.get("segments", [])
+        summary = result.get("summary", {})
 
         timestamp_dt = datetime.fromtimestamp(timestamp)
-        print(
-            f"[{timestamp_dt.isoformat()}] Camera={camera} detections={len(detections)}"
+        free_rois = summary.get("free", [])
+        occupied_rois = summary.get("occupied", [])
+        total_people = summary.get("total_people", 0)
+        free_display = ", ".join(free_rois) if free_rois else "None"
+        occupied_display = ", ".join(occupied_rois) if occupied_rois else "None"
+        message = (
+            f"[{timestamp_dt.isoformat()}] Camera={camera} | Free: {free_display} | "
+            f"Occupied: {occupied_display} | People: {total_people}"
         )
+        print(message)
+
+        if ws_client:
+            ws_payload = {
+                "event": "frame_result",
+                "camera": camera,
+                "timestamp": timestamp,
+                "summary": summary,
+                "segments": occupancies,
+            }
+            ws_client.send(ws_payload)
 
         annotated = roi_image.copy()
         if annotated.ndim == 2:
             annotated = cv2.cvtColor(annotated, cv2.COLOR_GRAY2BGR)
 
+        # Draw detection centers.
         for detection in detections:
             box = detection.get("box")
             if not box or len(box) != 4:
@@ -107,6 +129,34 @@ def create_result_handler(output_dir: Path):
             center_x = (x_min + x_max) // 2
             center_y = (y_min + y_max) // 2
             cv2.circle(annotated, (center_x, center_y), 6, (0, 255, 0), -1)
+
+        occupancy_map = {occ["index"]: occ for occ in occupancies}
+        for segment in segments:
+            idx = segment.get("index")
+            occupancy = occupancy_map.get(idx)
+            if occupancy is None:
+                continue
+            color = (0, 200, 0) if occupancy["status"] == "free" else (0, 0, 255)
+            y_start = int(segment.get("y_start", 0))
+            y_end = int(segment.get("y_end", y_start))
+            cv2.rectangle(
+                annotated,
+                (0, y_start),
+                (annotated.shape[1] - 1, max(y_start + 1, y_end - 1)),
+                color,
+                2,
+            )
+            label = f"{occupancy['name']} {occupancy['count']}/{occupancy['capacity']} {occupancy['status']}"
+            cv2.putText(
+                annotated,
+                label,
+                (10, y_start + 25),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                color,
+                2,
+                lineType=cv2.LINE_AA,
+            )
 
         filename = (
             f"{camera}_{timestamp_dt.strftime('%Y%m%d_%H%M%S_%f')}.jpg"
@@ -168,12 +218,15 @@ def main() -> int:
     )
     roi_processor.start()
 
-    result_handler = create_result_handler(OUTPUT_DIRECTORY)
+    ws_client = ModelWebSocketClient(url=MODEL_WS_URL)
+    result_handler = create_result_handler(OUTPUT_DIRECTORY, ws_client=ws_client)
     try:
         model = YoloModel(weights=YOLO_WEIGHTS_PATH, device=YOLO_DEVICE)
     except Exception as exc:
         LOGGER.error("Failed to initialise YOLO model: %s", exc)
         return 1
+
+    ws_client.start()
 
     model_processor = ModelProcessor(
         input_queue=roi_queue,
@@ -203,6 +256,7 @@ def main() -> int:
             worker.stop()
         roi_processor.stop()
         model_processor.stop()
+        ws_client.stop()
 
         for worker in workers:
             worker.join()

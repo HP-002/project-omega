@@ -92,6 +92,7 @@ class YoloModel(BaseModel):
                 detections.append(
                     {
                         "label": label,
+                        "class_id": cls_id,
                         "confidence": conf,
                         "box": xyxy,
                     }
@@ -101,6 +102,9 @@ class YoloModel(BaseModel):
 
 
 ResultHandler = Callable[[dict, np.ndarray], None]
+
+PERSON_LABELS = {"person"}
+PERSON_CLASS_IDS = {0}
 
 
 @dataclass
@@ -145,12 +149,26 @@ class ModelProcessor:
             roi_image = package.get("roi_image")
             camera = package.get("camera")
             timestamp = package.get("timestamp")
+            segments = package.get("segments", [])
 
             inference = model.predict(roi_image)
+            detections = inference.get("detections", [])
+            occupancies = self._calculate_occupancy(segments, detections)
+            free = [entry["name"] for entry in occupancies if entry["status"] == "free"]
+            occupied = [entry["name"] for entry in occupancies if entry["status"] == "occupied"]
+            summary = {
+                "total_people": sum(entry["count"] for entry in occupancies),
+                "free": free,
+                "occupied": occupied,
+            }
+
             result = {
                 "camera": camera,
                 "timestamp": timestamp,
                 "inference": inference,
+                "segments": segments,
+                "occupancies": occupancies,
+                "summary": summary,
             }
 
             if self.result_handler:
@@ -159,11 +177,54 @@ class ModelProcessor:
                 except Exception:  # pragma: no cover - downstream handler bug
                     LOGGER.exception("Error while handling inference result.")
             else:
-                detections = inference.get("detections", [])
                 LOGGER.info(
-                    "Inference result for %s (timestamp=%s): %d detections",
+                    "Inference result for %s (timestamp=%s): free=%s occupied=%s total_people=%s",
                     camera,
                     timestamp,
-                    len(detections),
+                    summary["free"],
+                    summary["occupied"],
+                    summary["total_people"],
                 )
+
+    @staticmethod
+    def _is_person_detection(detection: dict) -> bool:
+        label = detection.get("label")
+        if label and str(label).lower() in PERSON_LABELS:
+            return True
+        class_id = detection.get("class_id")
+        return class_id in PERSON_CLASS_IDS
+
+    def _calculate_occupancy(
+        self,
+        segments: Sequence[dict],
+        detections: Sequence[dict],
+    ) -> list[dict]:
+        counts: dict[int, int] = {seg["index"]: 0 for seg in segments}
+        for detection in detections:
+            if not self._is_person_detection(detection):
+                continue
+            box = detection.get("box")
+            if not box or len(box) < 4:
+                continue
+            y_center = (box[1] + box[3]) / 2
+            for segment in segments:
+                if segment["y_start"] <= y_center < segment["y_end"]:
+                    counts[segment["index"]] += 1
+                    break
+
+        occupancies: list[dict] = []
+        for segment in segments:
+            capacity = segment.get("capacity", 0)
+            count = counts.get(segment["index"], 0)
+            status = "occupied" if capacity and count > capacity else "free"
+            occupancies.append(
+                {
+                    "index": segment["index"],
+                    "name": segment.get("name", f"ROI-{segment['index'] + 1}"),
+                    "capacity": capacity,
+                    "count": count,
+                    "status": status,
+                }
+            )
+        return occupancies
 
