@@ -37,7 +37,12 @@ VIDEO_PATHS: list[str | int] = [
     # file or update the ROI JSON accordingly.
     # Example:
     # "data/videos/flint_1.mp4",
-    "data/videos/OW_1.MOV"
+    "data/videos/PaulaPlaza_1.MOV",
+    "data/videos/OW_1.MOV",
+    "data/videos/Flint_1.MOV",
+    "data/videos/SU_3.MOV",
+    "data/videos/SU_2.MOV",
+    "data/videos/Tims_1.MOV",
 ]
 
 ROI_CONFIG_PATH = BASE_DIR / "data/roi.json"
@@ -47,7 +52,7 @@ YOLO_DEVICE: str | None = None  # e.g., "cpu", "cuda:0"
 MODEL_WS_URL = "ws://127.0.0.1:8000/model/ws/connect"
 
 # Sampling interval (seconds) between frames pushed by each video worker.
-FRAME_INTERVAL = 1.0
+FRAME_INTERVAL = 10.0
 
 # Maximum number of items allowed in the intermediate queues.
 QUEUE_CAPACITY = 10
