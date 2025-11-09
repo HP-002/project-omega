@@ -6,6 +6,7 @@ processor stages.
 from __future__ import annotations
 
 import logging
+import os
 import signal
 import sys
 import time
@@ -16,10 +17,15 @@ from typing import Iterable
 
 import cv2  # type: ignore
 
-from utils.image_processor import ROIImageProcessor
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - optional dependency
+    load_dotenv = None
+
 from utils.model import ModelProcessor, YoloModel
 from utils.video_processor import VideoFeedWorker, spawn_video_feeds
 from utils.websocket_client import ModelWebSocketClient
+from utils.image_processor import ROIImageProcessor
 
 
 LOGGER = logging.getLogger(__name__)
@@ -27,35 +33,61 @@ LOGGER = logging.getLogger(__name__)
 # Base directory used to resolve relative paths.
 BASE_DIR = Path(__file__).resolve().parent
 
+# Attempt to populate environment from .env file if python-dotenv is available.
+if load_dotenv is not None:
+    load_dotenv(Path(__file__).resolve().parent / ".env")
+
 # --------------------------------------------------------------------------- #
 # Configuration section – tweak these values to suit your deployment.
 # --------------------------------------------------------------------------- #
-VIDEO_PATHS: list[str | int] = [
-    # Add absolute or relative paths (or integer webcam indices) to the videos you
-    # would like to process. The camera name is derived from the filename stem. If
-    # you need a specific camera name (to match the ROI configuration), rename the
-    # file or update the ROI JSON accordingly.
-    # Example:
-    # "data/videos/flint_1.mp4",
+DEFAULT_VIDEO_PATHS: tuple[str | int, ...] = (
     "data/videos/PaulaPlaza_1.MOV",
     "data/videos/OW_1.MOV",
     "data/videos/Flint_1.MOV",
     "data/videos/SU_3.MOV",
     "data/videos/SU_2.MOV",
     "data/videos/Tims_1.MOV",
-]
+)
 
-ROI_CONFIG_PATH = BASE_DIR / "data/roi.json"
-OUTPUT_DIRECTORY = BASE_DIR / "output/frames"
-YOLO_WEIGHTS_PATH = BASE_DIR / "yolo12x.pt"
-YOLO_DEVICE: str | None = None  # e.g., "cpu", "cuda:0"
-MODEL_WS_URL = "ws://127.0.0.1:8000/model/ws/connect"
+
+def _parse_video_paths(env_value: str | None) -> list[str | int]:
+    if not env_value:
+        return list(DEFAULT_VIDEO_PATHS)
+
+    sources: list[str | int] = []
+    for raw in env_value.split(","):
+        entry = raw.strip()
+        if not entry:
+            continue
+        if entry.isdigit():
+            sources.append(int(entry))
+        else:
+            sources.append(entry)
+    return sources
+
+
+def _resolve_path(path_value: str | None, default: Path) -> Path:
+    if not path_value:
+        return default
+    candidate = Path(path_value)
+    if not candidate.is_absolute():
+        candidate = BASE_DIR / candidate
+    return candidate
+
+
+VIDEO_PATHS: list[str | int] = _parse_video_paths(os.getenv("VIDEO_PATHS"))
+
+ROI_CONFIG_PATH = _resolve_path(os.getenv("ROI_CONFIG_PATH"), BASE_DIR / "data/roi.json")
+OUTPUT_DIRECTORY = _resolve_path(os.getenv("OUTPUT_DIRECTORY"), BASE_DIR / "output/frames")
+YOLO_WEIGHTS_PATH = _resolve_path(os.getenv("YOLO_WEIGHTS_PATH"), BASE_DIR / "yolo12x.pt")
+YOLO_DEVICE: str | None = os.getenv("YOLO_DEVICE") or None  # e.g., "cpu", "cuda:0"
+MODEL_WS_URL = os.getenv("MODEL_WS_URL", "ws://127.0.0.1:8000/model/ws/connect")
 
 # Sampling interval (seconds) between frames pushed by each video worker.
-FRAME_INTERVAL = 10.0
+FRAME_INTERVAL = float(os.getenv("FRAME_INTERVAL", "10.0"))
 
 # Maximum number of items allowed in the intermediate queues.
-QUEUE_CAPACITY = 10
+QUEUE_CAPACITY = int(os.getenv("QUEUE_CAPACITY", "10"))
 
 
 # --------------------------------------------------------------------------- #
