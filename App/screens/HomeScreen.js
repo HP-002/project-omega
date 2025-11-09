@@ -118,7 +118,7 @@ export default function HomeScreen({ navigation }) {
         </Text>
 
         <View style={styles.actionsRow}>
-          {pinnedLocations.length > 0 && (
+          
             <Animated.View style={{ transform: [{ scale: filterScale }] }}>
               <TouchableOpacity
                 style={[
@@ -153,7 +153,7 @@ export default function HomeScreen({ navigation }) {
                 </View>
               </TouchableOpacity>
             </Animated.View>
-          )}
+          
 
           <TouchableOpacity
             style={[styles.actionButton, styles.mapButton]}

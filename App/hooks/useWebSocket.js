@@ -87,10 +87,6 @@ export const useWebSocket = (url = WS_URL) => {
   }, []);
 
   useEffect(() => {
-    // Don't connect if using mock data
-    if (USE_MOCK_DATA) {
-      return;
-    }
     connect();
     return () => {
       disconnect();
