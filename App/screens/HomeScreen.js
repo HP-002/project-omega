@@ -1,67 +1,97 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { LOCATIONS, getCrowdLevel, getCrowdLevelColor, getCrowdLevelText } from '../constants/Locations';
-import LocationCard from '../components/LocationCard';
+import { Animated } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { useCrowdData } from '../contexts/WebSocketContext';
+import { useFavorites } from '../contexts/FavoritesContext';
+import { USE_MOCK_DATA } from '../config/websocket';
+import { getCrowdLevelColor, getCrowdLevelText } from '../constants/Locations';
+// Use Expo Go compatible versions (React Native Animated API)
+import AnimatedLocationCard from '../components/AnimatedLocationCardExpoGo';
+import PulseIndicator from '../components/PulseIndicatorExpoGo';
 
 export default function HomeScreen({ navigation }) {
-  const [locations, setLocations] = useState([]);
+  const { isConnected, getLocationsWithCrowd, crowdData, error, reconnectAttempts } = useCrowdData();
+  const { pinnedLocations, isPinned } = useFavorites();
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [showPinnedOnly, setShowPinnedOnly] = useState(false);
+  const filterScale = useRef(new Animated.Value(1)).current;
 
-  useEffect(() => {
-    loadLocations();
-  }, []);
-
-  const loadLocations = async () => {
-    setLoading(true);
-    // Simulate API call - replace with actual API endpoint
-    await new Promise(resolve => setTimeout(resolve, 500));
+  // Get locations with real-time crowd data from WebSocket
+  // Updates automatically when crowdData changes
+  const locations = useMemo(() => {
+    let locationsWithCrowd = getLocationsWithCrowd();
     
-    const locationsWithCrowd = LOCATIONS.map(location => ({
-      ...location,
-      crowdData: getCrowdLevel(location.id),
-    }));
+    // Filter to show only pinned if filter is active
+    if (showPinnedOnly) {
+      locationsWithCrowd = locationsWithCrowd.filter(loc => isPinned(loc.id));
+    }
     
-    // Sort by crowd level (low first)
+    // Sort: pinned first, then by crowd level (low first)
     locationsWithCrowd.sort((a, b) => {
+      const aPinned = isPinned(a.id);
+      const bPinned = isPinned(b.id);
+      
+      // Pinned items come first
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+      
+      // Then sort by crowd level
       const order = { low: 0, medium: 1, high: 2, unknown: 3 };
       return order[a.crowdData.level] - order[b.crowdData.level];
     });
     
-    setLocations(locationsWithCrowd);
-    setLoading(false);
-  };
+    return locationsWithCrowd;
+  }, [getLocationsWithCrowd, crowdData, showPinnedOnly, isPinned]);
 
-  const onRefresh = async () => {
+  const onRefresh = () => {
     setRefreshing(true);
-    await loadLocations();
-    setRefreshing(false);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // WebSocket automatically updates, just simulate refresh
+    setTimeout(() => setRefreshing(false), 500);
   };
 
-  const renderLocation = ({ item }) => (
-    <LocationCard
+  const handleFilterToggle = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Animated.sequence([
+      Animated.spring(filterScale, {
+        toValue: 0.95,
+        useNativeDriver: true,
+        tension: 200,
+        friction: 8,
+      }),
+      Animated.spring(filterScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 200,
+        friction: 8,
+      }),
+    ]).start();
+    setShowPinnedOnly(!showPinnedOnly);
+  };
+
+  const handleViewModeToggle = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    navigation.navigate('MapView');
+  };
+
+  // No need for animated style, we'll use Animated.View directly
+
+  const renderLocation = ({ item, index }) => (
+    <AnimatedLocationCard
       location={item}
+      index={index}
       onPress={() => navigation.navigate('LocationDetail', { location: item })}
     />
   );
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0f3460" />
-        <Text style={styles.loadingText}>Loading study spaces...</Text>
-      </View>
-    );
-  }
 
   return (
     <LinearGradient
@@ -76,6 +106,57 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.subtitle}>
           Real-time crowd levels at UB locations
         </Text>
+        
+        {/* Filter and View Toggle */}
+        <View style={styles.filterContainer}>
+          <Animated.View style={{ transform: [{ scale: filterScale }] }}>
+            <TouchableOpacity
+              style={[styles.filterButton, showPinnedOnly && styles.filterButtonActive]}
+              onPress={handleFilterToggle}
+            >
+              <Text style={[styles.filterText, showPinnedOnly && styles.filterTextActive]}>
+                {showPinnedOnly ? '📌 Pinned Only' : '📌 Show All'}
+              </Text>
+              {pinnedLocations.length > 0 && (
+                <View style={styles.pinCount}>
+                  <Text style={styles.pinCountText}>{pinnedLocations.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
+          
+          <TouchableOpacity
+            style={styles.mapButton}
+            onPress={handleViewModeToggle}
+          >
+            <Text style={styles.mapButtonText}>🗺️ Map</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Mock Data Indicator */}
+        {USE_MOCK_DATA && (
+          <View style={styles.mockIndicator}>
+            <Text style={styles.mockText}>🔧 TEST MODE: Using Mock Data</Text>
+          </View>
+        )}
+        
+        {/* WebSocket Connection Status */}
+        <View style={styles.connectionStatus}>
+          {isConnected ? (
+            <PulseIndicator color="#4CAF50" size={10} />
+          ) : (
+            <View style={[styles.statusDot, { backgroundColor: '#F44336' }]} />
+          )}
+          <Text style={styles.statusText}>
+            {isConnected ? '🟢 Live' : error ? '🔴 Disconnected' : '🟡 Connecting...'}
+          </Text>
+          {!isConnected && reconnectAttempts > 0 && (
+            <Text style={styles.reconnectText}>
+              Reconnecting... ({reconnectAttempts}/5)
+            </Text>
+          )}
+        </View>
+
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <View style={[styles.statDot, { backgroundColor: '#4CAF50' }]} />
@@ -102,11 +183,16 @@ export default function HomeScreen({ navigation }) {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor="#fff"
+            colors={['#fff']}
           />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
+            <Text style={styles.emptyEmoji}>📍</Text>
             <Text style={styles.emptyText}>No locations available</Text>
+            <Text style={styles.emptySubtext}>
+              {showPinnedOnly ? 'Pin some locations to see them here!' : 'Pull down to refresh'}
+            </Text>
           </View>
         }
       />
@@ -118,39 +204,98 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#1a1a2e',
-  },
-  loadingText: {
-    color: '#fff',
-    marginTop: 10,
-    fontSize: 16,
-  },
   header: {
-    padding: 20,
-    paddingTop: 40,
+    padding: 16,
+    paddingTop: 10,
   },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   emoji: {
-    fontSize: 32,
-    marginRight: 12,
+    fontSize: 24,
+    marginRight: 8,
   },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#e0e0e0',
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  filterContainer: {
+    marginBottom: 12,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    flex: 1,
+  },
+  mapButton: {
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  mapButtonText: {
+    color: '#4CAF50',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  filterButtonActive: {
+    backgroundColor: 'rgba(255, 193, 7, 0.2)',
+    borderColor: '#FFC107',
+  },
+  filterText: {
+    color: '#e0e0e0',
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
+  },
+  filterTextActive: {
+    color: '#FFC107',
+  },
+  pinCount: {
+    backgroundColor: '#FFC107',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    marginLeft: 8,
+  },
+  pinCountText: {
+    color: '#1a1a2e',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  mockIndicator: {
+    backgroundColor: '#FF9800',
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  mockText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -171,17 +316,53 @@ const styles = StyleSheet.create({
     color: '#e0e0e0',
     fontSize: 12,
   },
+  connectionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+    padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  statusText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
+  },
+  reconnectText: {
+    color: '#FF9800',
+    fontSize: 10,
+    marginLeft: 8,
+  },
   list: {
     padding: 16,
     paddingTop: 8,
   },
   emptyContainer: {
-    padding: 40,
+    padding: 60,
     alignItems: 'center',
+  },
+  emptyEmoji: {
+    fontSize: 64,
+    marginBottom: 16,
   },
   emptyText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    color: '#b0b0b0',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
-

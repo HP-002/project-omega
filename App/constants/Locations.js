@@ -1,9 +1,11 @@
 // Study space locations at UB
+// Images are loaded conditionally - if they don't exist, placeholders will be shown
 export const LOCATIONS = [
   {
     id: 'flint',
     name: 'Flint Hall',
     description: 'Study area in Flint Hall',
+    image: null, // Will be set when image file is added
     coordinates: {
       latitude: 43.0014,
       longitude: -78.7890,
@@ -13,6 +15,7 @@ export const LOCATIONS = [
     id: 'ow',
     name: 'O\'Brian Hall',
     description: 'Study space in O\'Brian Hall',
+    image: null, // Add require('../assets/locations/obrian.jpg') when image is added
     coordinates: {
       latitude: 43.0018,
       longitude: -78.7895,
@@ -22,7 +25,7 @@ export const LOCATIONS = [
     id: 'su',
     name: 'Student Union',
     description: 'Main study area in Student Union',
-    // image: require('../assets/locations/su.jpg'), // Uncomment when images are added
+    image: null, // Will be set when image file is added
     coordinates: {
       latitude: 43.0020,
       longitude: -78.7898,
@@ -32,7 +35,7 @@ export const LOCATIONS = [
     id: 'paula',
     name: 'Paula Plaza',
     description: 'Outdoor study space at Paula Plaza',
-    // image: require('../assets/locations/paula.jpg'), // Uncomment when images are added
+    image: null, // Add require('../assets/locations/paula-plaza.jpg') when image is added
     coordinates: {
       latitude: 43.0016,
       longitude: -78.7892,
@@ -42,7 +45,7 @@ export const LOCATIONS = [
     id: 'tims',
     name: 'Tim Hortons Study Area',
     description: 'Study space near Tim Hortons',
-    // image: require('../assets/locations/tims.jpg'), // Uncomment when images are added
+    image: null, // Add require('../assets/locations/tim-hortons.jpg') when image is added
     coordinates: {
       latitude: 43.0012,
       longitude: -78.7888,
@@ -50,18 +53,23 @@ export const LOCATIONS = [
   },
 ];
 
-// Mock crowd data - this will be replaced with real-time YOLO detection data
-export const getCrowdLevel = (locationId) => {
-  // This will be replaced with API call to our server
-  const mockData = {
-    flint: { count: 4, level: 'low', lastUpdated: new Date() },
-    ow: { count: 16, level: 'medium', lastUpdated: new Date() },
-    su: { count: 8, level: 'low', lastUpdated: new Date() },
-    paula: { count: 2, level: 'low', lastUpdated: new Date() },
-    tims: { count: 12, level: 'medium', lastUpdated: new Date() },
-  };
+// Helper function to load images - uncomment and update when images are added
+export const loadLocationImages = () => {
+  // Load images as they become available
+  // Student Union image is available
+  try {
+    LOCATIONS[2].image = require('../assets/locations/student-union.jpg');
+  } catch (e) {
+    // Image not found, keep as null
+  }
   
-  return mockData[locationId] || { count: 0, level: 'unknown', lastUpdated: new Date() };
+  // Uncomment these lines when you add the other image files:
+  /*
+  LOCATIONS[0].image = require('../assets/locations/flint.jpg');
+  LOCATIONS[1].image = require('../assets/locations/obrian.jpg');
+  LOCATIONS[3].image = require('../assets/locations/paula-plaza.jpg');
+  LOCATIONS[4].image = require('../assets/locations/tim-hortons.jpg');
+  */
 };
 
 export const getCrowdLevelColor = (level) => {
@@ -87,5 +95,42 @@ export const getCrowdLevelText = (level) => {
       return 'High';
     default:
       return 'Unknown';
+  }
+};
+
+// Map location names to IDs (case-insensitive)
+export const getLocationIdByName = (locationName) => {
+  const nameMap = {
+    'flint hall': 'flint',
+    'flint': 'flint',
+    'o\'brian hall': 'ow',
+    'obrian hall': 'ow',
+    'o\'brian': 'ow',
+    'obrian': 'ow',
+    'student union': 'su',
+    'su': 'su',
+    'paula plaza': 'paula',
+    'paula': 'paula',
+    'tim hortons': 'tims',
+    'tim hortons study area': 'tims',
+    'tims': 'tims',
+  };
+
+  const normalizedName = locationName?.toLowerCase().trim();
+  return nameMap[normalizedName] || null;
+};
+
+// Calculate crowd level from occupancy percentage
+export const calculateCrowdLevel = (occupancyPercent) => {
+  if (occupancyPercent === null || occupancyPercent === undefined) {
+    return 'unknown';
+  }
+
+  if (occupancyPercent < 33) {
+    return 'low';
+  } else if (occupancyPercent < 67) {
+    return 'medium';
+  } else {
+    return 'high';
   }
 };
