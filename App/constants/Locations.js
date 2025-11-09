@@ -1,11 +1,10 @@
 // Study space locations at UB
-// Images are loaded conditionally - if they don't exist, placeholders will be shown
 export const LOCATIONS = [
   {
     id: 'flint',
     name: 'Flint Loop',
-    description: 'Study area in Flint Loop',
-    image: null, // Will be set when image file is added
+    description: 'The Flint Loop seating area offers a calm, open-air space ideal for studying or relaxing between classes. With plenty of benches and tables, it\'s a popular spot to catch up on readings, collaborate on group projects, or enjoy a quiet moment outdoors. Its proximity to the shuttle stop also makes it a convenient study corner for students transitioning between North and South Campus.',
+    image: require('../assets/locations/flint-loop.jpg'),
     coordinates: {
       latitude: 43.0014,
       longitude: -78.7890,
@@ -14,8 +13,8 @@ export const LOCATIONS = [
   {
     id: 'ow',
     name: 'One World',
-    description: 'Study space in One World',
-    image: null, // Add require('../assets/locations/obrian.jpg') when image is added
+    description: 'This bright and spacious place features long communal tables, counter seating, and open work areas where students gather to study, relax, eat, or meet friends between classes. With its large windows and steady foot traffic, it\'s one of UB\'s most active indoor zones.',
+    image: require('../assets/locations/one-world.jpg'),
     coordinates: {
       latitude: 43.0018,
       longitude: -78.7895,
@@ -24,8 +23,8 @@ export const LOCATIONS = [
   {
     id: 'su',
     name: 'Student Union',
-    description: 'Main study area in Student Union',
-    image: null, // Will be set when image file is added
+    description: 'The Student Union serves as the central hub for student life, activity, and collaboration. This building offers a welcoming and relaxing social heart of campus, providing services, lounge spaces, and shared areas for building community.',
+    image: require('../assets/locations/student-union.jpg'),
     coordinates: {
       latitude: 43.0020,
       longitude: -78.7898,
@@ -34,8 +33,8 @@ export const LOCATIONS = [
   {
     id: 'paula',
     name: 'Paula Plaza',
-    description: 'Outdoor study space at Paula Plaza',
-    image: null, // Add require('../assets/locations/paula-plaza.jpg') when image is added
+    description: 'Paula T. Agrusa Plaza is a thoughtfully designed outdoor space located between the Alfiero Center and Park Hall, adjacent to the School of Management. The plaza features a variety of seating options and offers a refreshing spot to enjoy the outdoors. It is perfect for studying, socializing, relaxing, or meeting friends on pleasant weather days.',
+    image: require('../assets/locations/paula-plaza.jpg'),
     coordinates: {
       latitude: 43.0016,
       longitude: -78.7892,
@@ -44,33 +43,14 @@ export const LOCATIONS = [
   {
     id: 'tims',
     name: 'Tim Hortons',
-    description: 'Tim Hortons',
-    image: null, // Add require('../assets/locations/tim-hortons.jpg') when image is added
+    description: 'Located inside the Student Union, Tim Hortons is one of the busiest and most popular spots on campus. Students often stop by for coffee, snacks, or quick meetups between classes, making it a frequent gathering point throughout the day.',
+    image: require('../assets/locations/tim-hortons.jpg'),
     coordinates: {
       latitude: 43.0012,
       longitude: -78.7888,
     },
   },
 ];
-
-// Helper function to load images - uncomment and update when images are added
-export const loadLocationImages = () => {
-  // Load images as they become available
-  // Student Union image is available
-  try {
-    LOCATIONS[2].image = require('../assets/locations/student-union.jpg');
-  } catch (e) {
-    // Image not found, keep as null
-  }
-  
-  // Uncomment these lines when you add the other image files:
-  /*
-  LOCATIONS[0].image = require('../assets/locations/flint.jpg');
-  LOCATIONS[1].image = require('../assets/locations/obrian.jpg');
-  LOCATIONS[3].image = require('../assets/locations/paula-plaza.jpg');
-  LOCATIONS[4].image = require('../assets/locations/tim-hortons.jpg');
-  */
-};
 
 export const getCrowdLevelColor = (level) => {
   switch (level) {

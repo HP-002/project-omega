@@ -4,15 +4,11 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { WebSocketProvider } from './contexts/WebSocketContext';
 import { FavoritesProvider } from './contexts/FavoritesContext';
-import { loadLocationImages } from './constants/Locations';
 import HomeScreen from './screens/HomeScreen';
 import LocationDetailScreen from './screens/LocationDetailScreen';
 import MapViewScreen from './screens/MapViewScreen';
 
 const Stack = createNativeStackNavigator();
-
-// Load location images on app startup
-loadLocationImages();
 
 export default function App() {
   return (
