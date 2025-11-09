@@ -31,6 +31,16 @@ export const LOCATIONS = [
     },
   },
   {
+    id: 'su_full',
+    name: 'Student Union (Full)',
+    description: 'The Student Union serves as the central hub for student life, activity, and collaboration. This building offers a welcoming and relaxing social heart of campus, providing services, lounge spaces, and shared areas for building community.',
+    image: require('../assets/locations/student-union.jpg'),
+    coordinates: {
+      latitude: 43.0020,
+      longitude: -78.7898,
+    },
+  },
+  {
     id: 'paula',
     name: 'Paula Plaza',
     description: 'Paula T. Agrusa Plaza is a thoughtfully designed outdoor space located between the Alfiero Center and Park Hall, adjacent to the School of Management. The plaza features a variety of seating options and offers a refreshing spot to enjoy the outdoors. It is perfect for studying, socializing, relaxing, or meeting friends on pleasant weather days.',
@@ -87,7 +97,7 @@ export const getLocationIdByName = (locationName) => {
     'ow': 'ow',
     'student union 1': 'su',
     'student union 2': 'su',
-    'student union 3': 'su',
+    'student union 3': 'su_full',
     'su': 'su',
     'paula plaza': 'paula',
     'paula': 'paula',
