@@ -20,9 +20,8 @@ export const WebSocketProvider = ({ children }) => {
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
   // Use real WebSocket or mock based on config
-  // Note: useWebSocket hook is always called (React rules), but it won't connect if USE_MOCK_DATA is true
+  // Note: useWebSocket hook is always called (React rules)
   const realWebSocket = useWebSocket();
-  const mockWSRef = useRef(null);
 
   // Handle real WebSocket
   useEffect(() => {
@@ -39,7 +38,7 @@ export const WebSocketProvider = ({ children }) => {
                 count: msg.people_detected,
                 level: calculateCrowdLevel(msg.occupancy_percent),
                 occupancyPercent: msg.occupancy_percent,
-                lastUpdated: new Date(msg.timestamp),
+                lastUpdated: new Date(),
                 locationName: msg.location_name,
               },
             }));
