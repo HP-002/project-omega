@@ -2,7 +2,7 @@
 // Update this URL to match your FastAPI backend WebSocket endpoint
 
 // Set to true to use mock data for testing (when backend isn't ready)
-export const USE_MOCK_DATA = true; // Change to false when backend is ready
+export const USE_MOCK_DATA = false; // Change to false when backend is ready
 
 // CHANGE THIS TO TRUE WHEN BACKEND IS READY!!!
 
@@ -12,8 +12,8 @@ export const USE_MOCK_DATA = true; // Change to false when backend is ready
 // For production or if backend is on same network
 // const WS_URL = 'ws://your-server-ip:8000/ws';
 
-// Default localhost (works for iOS simulator and Android emulator)
-export const WS_URL = 'ws://localhost:8000/ws';
+// Replace localhost with your computer's IP address
+export const WS_URL = "ws://192.168.1.171:8000/client/ws/connect";
 
 // Alternative: If using a specific endpoint for crowd data
 // export const WS_URL = 'ws://localhost:8000/ws/crowd-data';

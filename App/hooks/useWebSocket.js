@@ -24,6 +24,9 @@ export const useWebSocket = (url = WS_URL) => {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          console.log("Data received--------------------------------");
+          console.log(data);
+          console.log("--------------------------------");
           messageHandlersRef.current.forEach(handler => handler(data));
         } catch (err) {
           console.error('Error parsing WebSocket message:', err);

@@ -47,7 +47,7 @@ YOLO_DEVICE: str | None = None  # e.g., "cpu", "cuda:0"
 MODEL_WS_URL = "ws://127.0.0.1:8000/model/ws/connect"
 
 # Sampling interval (seconds) between frames pushed by each video worker.
-FRAME_INTERVAL = 10.0
+FRAME_INTERVAL = 1.0
 
 # Maximum number of items allowed in the intermediate queues.
 QUEUE_CAPACITY = 10

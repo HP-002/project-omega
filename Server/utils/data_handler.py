@@ -1,45 +1,49 @@
 from fastapi import Depends
-from sqlalchemy.orm import Session
-from schemas.model_data import ModelDataSchema
-from schemas.client_data import ClientDataSchema, ClientSummarySchema
-from database import crud
-from database.connection import SessionLocal
+# from schemas.model_data import ModelDataSchema
+# from schemas.client_data import ClientDataSchema, ClientSummarySchema
+# from database import crud
+# from database.connection import SessionLocal
 from utils.socket_manager import client_manager
 
 class DataHandler:
     def __init__(self) -> None:
+        self.places = {
+            "OW_1": "One World",
+            "Flint_1": "Flint Loop",
+            "PaulaPlaza_1": "Paula Plaza",
+            "SU_1": "Student Union 1",
+            "SU_2": "Student Union 2",
+            "SU_3": "Student Union 3",
+            "Tims_1": "Tim Hortons",
+        }
+
+    async def handle_data(self, data):
+        # 1 - Save to database
+        #self.add_to_database(data)
+
+        # 2 - Transform to client data format
+        client_data = self.transform_to_client_data(data)
+
+        # 3 - Broadcast to all connected clients
+        if client_manager.has_connections():
+            print("Broadcasting to clients--------------------------------")
+            await client_manager.broadcast(client_data)
+
+    def transform_to_client_data(self, data):
+        location_name = self.places[data["camera"]]
+        timestamp = data["timestamp"]
+        people_detected = data["summary"]["total_people"]
+        occupancy_percent = len(data["summary"]["occupied"]) / (len(data["summary"]["free"]) + len(data["summary"]["occupied"])) * 100
+
+        return {
+            "location_name": location_name,
+            "timestamp": timestamp,
+            "people_detected": people_detected,
+            "occupancy_percent": occupancy_percent
+        }
+
+    async def add_to_database(self, data):
         pass
 
-    async def handle_data(self, data: ModelDataSchema) -> None:
-        """
-        Process data received from model:
-        1. Save to database
-        2. Transform to client data format
-        3. Broadcast to all connected clients
-        """
-        db = SessionLocal()
-        try:
-            saved_data = crud.save_model_data(db, data)
 
-            location = crud.get_location_by_id(db, saved_data.location_id)
-            location_name = location.name if location else f"Location {data.location_id}"
-
-            client_data = ClientDataSchema(
-                location_name=location_name,
-                timestamp=data.timestamp,
-                summary=ClientSummarySchema(
-                    total_tables=data.summary.total_tables,
-                    empty_tables=data.summary.empty_tables,
-                    occupied_tables=data.summary.occupied_tables,
-                    total_people=data.summary.total_people
-                )
-            )
-            
-
-            if client_manager.has_connections():
-                await client_manager.broadcast(client_data.model_dump())
-
-        except Exception as e:
-            pass
-
-ta_handler = DataHandler()
+data_handler = DataHandler()

@@ -1,6 +1,7 @@
+import json
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from typing import Dict
-# from utils.data_handler import data_handler
+from utils.data_handler import data_handler
 from utils.socket_manager import model_manager
 # from schemas.model_data import ModelDataSchema
 # from pydantic import ValidationError
@@ -18,8 +19,8 @@ async def connect_model(websocket: WebSocket):
             #     await data_handler.handle_data(model_data)
             # except ValidationError as e:
             #     print(f"Invalid data format: {e}")
-            print("--------------------------------")
-            print(data)
+            await data_handler.handle_data(data)
+            
     except WebSocketDisconnect:
         model_manager.disconnect(websocket)
     
