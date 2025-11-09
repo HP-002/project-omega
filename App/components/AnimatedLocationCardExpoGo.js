@@ -11,12 +11,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { getCrowdLevelColor, getCrowdLevelText } from '../constants/Locations';
 import { useFavorites } from '../contexts/FavoritesContext';
+import { useTheme } from '../contexts/ThemeContext';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 export default function AnimatedLocationCardExpoGo({ location, onPress, index = 0 }) {
   const { isPinned, togglePin } = useFavorites();
+  const { colors } = useTheme();
   const crowdColor = getCrowdLevelColor(location.crowdData.level);
   const crowdText = getCrowdLevelText(location.crowdData.level);
   const pinned = isPinned(location.id);
@@ -92,7 +94,14 @@ export default function AnimatedLocationCardExpoGo({ location, onPress, index = 
       ]}
     >
       <TouchableOpacity
-        style={styles.card}
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.cardBackground,
+            borderColor: colors.cardBorder,
+            shadowColor: colors.cardShadow,
+          },
+        ]}
         onPress={handlePress}
         activeOpacity={0.9}
       >
@@ -103,13 +112,13 @@ export default function AnimatedLocationCardExpoGo({ location, onPress, index = 
               style={styles.image}
             />
           ) : (
-            <View style={[styles.image, styles.placeholderImage]}>
+            <View style={[styles.image, styles.placeholderImage, { backgroundColor: colors.placeholderBackground }]}>
               <LinearGradient
-                colors={['#16213e', '#0f3460', '#1a1a2e']}
+                colors={colors.placeholderGradient}
                 style={styles.placeholderGradient}
               >
                 <View style={styles.placeholderIcon}>
-                  <FontAwesome5 name="surprise" size={24} color="white" />
+                  <FontAwesome5 name="surprise" size={24} color={colors.text} />
                 </View>
               </LinearGradient>
             </View>
@@ -131,8 +140,8 @@ export default function AnimatedLocationCardExpoGo({ location, onPress, index = 
         <View style={styles.content}>
           <View style={styles.nameRow}>
             <View style={styles.nameContainer}>
-              {pinned && <MaterialCommunityIcons name="pin" size={15} color="white" />}
-              <Text style={styles.name}>{location.name}</Text>
+              {pinned && <MaterialCommunityIcons name="pin" size={15} color={colors.text} />}
+              <Text style={[styles.name, { color: colors.text }]}>{location.name}</Text>
             </View>
             <View
               style={[
@@ -141,20 +150,20 @@ export default function AnimatedLocationCardExpoGo({ location, onPress, index = 
               ]}
             />
           </View>
-          <Text style={styles.description}>{location.description}</Text>
-          <View style={styles.footer}>
+          <Text style={[styles.description, { color: colors.textSecondary }]}>{location.description}</Text>
+          <View style={[styles.footer, { borderTopColor: colors.cardBorder }]}>
             <View style={styles.footerLeft}>
-              <Ionicons name="people" color="white" style={styles.footerIcon} />
-              <Text style={styles.count}>
+              <Ionicons name="people" color={colors.text} style={styles.footerIcon} />
+              <Text style={[styles.count, { color: colors.text }]}>
                 {location.crowdData.count} people
               </Text>
               {location.crowdData.occupancyPercent !== null && (
-                <Text style={styles.occupancy}>
+                <Text style={[styles.occupancy, { color: colors.textTertiary }]}>
                   •  {location.crowdData.occupancyPercent.toFixed(0)}% full
                 </Text>
               )}
             </View>
-            <Ionicons name="arrow-forward" style={styles.arrow} />
+            <Ionicons name="arrow-forward" style={[styles.arrow, { color: colors.text }]} />
           </View>
         </View>
       </TouchableOpacity>
@@ -167,11 +176,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 32,
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -241,13 +248,11 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#fff',
     flex: 1,
     letterSpacing: 0.5,
   },
   description: {
     fontSize: 12,
-    color: '#e0e0e0',
     marginBottom: 2,
     paddingLeft: 0,
     lineHeight: 20,
@@ -259,7 +264,6 @@ const styles = StyleSheet.create({
     paddingTop: 5,
     paddingHorizontal: 2,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.15)',
   },
   footerLeft: {
     flexDirection: 'row',
@@ -271,12 +275,10 @@ const styles = StyleSheet.create({
   },
   count: {
     fontSize: 15,
-    color: '#fff',
     fontWeight: '600',
   },
   occupancy: {
     fontSize: 15,
-    color: '#b0b0b0',
     marginLeft: 8,
   },
   indicator: {
@@ -291,11 +293,9 @@ const styles = StyleSheet.create({
   },
   arrow: {
     fontSize: 16,
-    color: '#fff',
     fontWeight: '300',
   },
   placeholderImage: {
-    backgroundColor: '#16213e',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',

@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useCrowdData } from '../contexts/WebSocketContext';
 import { useFavorites } from '../contexts/FavoritesContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { getCrowdLevelColor, getCrowdLevelText } from '../constants/Locations';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -23,6 +24,7 @@ export default function LocationDetailScreen({ route, navigation }) {
   const { location } = route.params;
   const { getCrowdData, isConnected } = useCrowdData();
   const { isPinned, togglePin } = useFavorites();
+  const { colors, isDark } = useTheme();
   
   // Get real-time crowd data from WebSocket
   const crowdData = getCrowdData(location.id);
@@ -116,9 +118,38 @@ export default function LocationDetailScreen({ route, navigation }) {
   const crowdColor = getCrowdLevelColor(crowdData.level);
   const crowdText = getCrowdLevelText(crowdData.level);
 
+  const dynamicStyles = {
+    locationName: { color: colors.text },
+    pinButton: { backgroundColor: colors.buttonBackground },
+    pinButtonActive: { backgroundColor: colors.buttonBackgroundActive },
+    pinIcon: { color: pinned ? colors.buttonTextActive : colors.buttonText },
+    content: { backgroundColor: 'transparent' },
+    pinSection: {
+      backgroundColor: colors.buttonBackground,
+      borderColor: colors.buttonBorder,
+    },
+    pinSectionActive: {
+      backgroundColor: isDark ? 'rgba(255, 193, 7, 0.2)' : 'rgba(255, 193, 7, 0.15)',
+      borderColor: '#FFC107',
+    },
+    pinSectionText: { color: colors.textSecondary },
+    pinSectionTextActive: { color: '#FFC107' },
+    infoCard: {
+      backgroundColor: colors.cardBackground,
+      borderColor: colors.cardBorder,
+    },
+    infoLabel: { color: colors.textTertiary },
+    infoValue: { color: colors.text },
+    description: { color: colors.textSecondary },
+    placeholderImage: { backgroundColor: colors.placeholderBackground },
+    placeholderGradient: { colors: colors.placeholderGradient },
+    placeholderText: { color: colors.text },
+    imageOverlay: { backgroundColor: colors.overlay },
+  };
+
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f3460']}
+      colors={[colors.gradientStart, colors.gradientMiddle, colors.gradientEnd]}
       style={styles.gradient}
     >
       <ScrollView
@@ -141,26 +172,28 @@ export default function LocationDetailScreen({ route, navigation }) {
               style={styles.image}
             />
           ) : (
-            <View style={[styles.image, styles.placeholderImage]}>
+            <View style={[styles.image, styles.placeholderImage, dynamicStyles.placeholderImage]}>
               <LinearGradient
-                colors={['#16213e', '#0f3460', '#1a1a2e']}
+                colors={dynamicStyles.placeholderGradient.colors}
                 style={styles.placeholderGradient}
               >
                 <View style={styles.placeholderIcon}>
-                  <FontAwesome5 name="surprise" size={24} color="white" />
+                  <FontAwesome5 name="surprise" size={24} color={colors.text} />
                 </View>
               </LinearGradient>
             </View>
           )}
-          <View style={styles.imageOverlay}>
+          <View style={[styles.imageOverlay, dynamicStyles.imageOverlay]}>
             <View style={styles.overlayRow}>
-              <Text style={styles.locationName} numberOfLines={2}>
+              <Text style={[styles.locationName, dynamicStyles.locationName]} numberOfLines={2}>
                 {location.name}
               </Text>
               <AnimatedTouchableOpacity
                 style={[
                   styles.pinButton,
+                  dynamicStyles.pinButton,
                   pinned && styles.pinButtonActive,
+                  pinned && dynamicStyles.pinButtonActive,
                   { transform: [{ scale: pinScale }] },
                 ]}
                 onPress={handlePinPress}
@@ -169,7 +202,7 @@ export default function LocationDetailScreen({ route, navigation }) {
                 <MaterialCommunityIcons
                   name={pinned ? 'pin' : 'pin-outline'}
                   size={18}
-                  color={pinned ? '#0f3460' : '#ffffff'}
+                  color={pinned ? colors.buttonTextActive : colors.buttonText}
                 />
               </AnimatedTouchableOpacity>
             </View>
@@ -179,6 +212,7 @@ export default function LocationDetailScreen({ route, navigation }) {
         <Animated.View
           style={[
             styles.content,
+            dynamicStyles.content,
             {
               opacity: contentOpacity,
               transform: [{ translateY: contentTranslateY }],
@@ -186,15 +220,17 @@ export default function LocationDetailScreen({ route, navigation }) {
           ]}
         >
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}><Ionicons name="people" color="white" size={18} />  Crowd Level</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              <Ionicons name="people" color={colors.text} size={18} />  Crowd Level
+            </Text>
             <View style={styles.crowdRow}>
               <View style={styles.crowdInfoBlock}>
                 <View style={styles.crowdInfo}>
-                  <Text style={styles.crowdCount}>
+                  <Text style={[styles.crowdCount, { color: colors.text }]}>
                     {crowdData.count} people detected
                   </Text>
                   {crowdData.occupancyPercent !== null && (
-                    <Text style={styles.occupancyPercent}>
+                    <Text style={[styles.occupancyPercent, { color: colors.textSecondary }]}>
                       {crowdData.occupancyPercent.toFixed(1)}% occupied
                     </Text>
                   )}
@@ -213,17 +249,21 @@ export default function LocationDetailScreen({ route, navigation }) {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}><Ionicons name="information-circle" color="white" size={18} /> Description</Text>
-            <Text style={styles.description}>{location.description}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              <Ionicons name="information-circle" color={colors.text} size={18} /> Description
+            </Text>
+            <Text style={[styles.description, dynamicStyles.description]}>{location.description}</Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}><Ionicons name="time" size={18} color="white" /> Last Updated</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              <Ionicons name="time" size={18} color={colors.text} /> Last Updated
+            </Text>
             <View style={styles.timeContainer}>
-              <Text style={styles.timeText}>
+              <Text style={[styles.timeText, { color: colors.text }]}>
                 {formatTime(crowdData.lastUpdated)}
               </Text>
-              <Text style={styles.dateText}>
+              <Text style={[styles.dateText, { color: colors.textSecondary }]}>
                 {crowdData.lastUpdated.toLocaleDateString('en-US', {
                   weekday: 'short',
                   month: 'short',
@@ -233,8 +273,8 @@ export default function LocationDetailScreen({ route, navigation }) {
             </View>
           </View>
 
-          <View style={styles.infoBox}>
-            <Text style={styles.infoText}>
+          <View style={[styles.infoBox, dynamicStyles.infoCard]}>
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>
               💡 Crowd levels are updated in real-time using YOLO object detection
             </Text>
           </View>

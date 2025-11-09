@@ -12,6 +12,7 @@ import { Animated } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useCrowdData } from '../contexts/WebSocketContext';
 import { useFavorites } from '../contexts/FavoritesContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { getCrowdLevelColor, getCrowdLevelText } from '../constants/Locations';
 import { LOCATIONS } from '../constants/Locations';
 
@@ -20,6 +21,7 @@ const { width, height } = Dimensions.get('window');
 export default function MapViewScreen({ navigation }) {
   const { getLocationsWithCrowd } = useCrowdData();
   const { isPinned } = useFavorites();
+  const { colors, isDark } = useTheme();
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [mapType, setMapType] = useState('standard');
   
@@ -120,8 +122,8 @@ export default function MapViewScreen({ navigation }) {
               anchor={{ x: 0.5, y: 1 }}
             >
               <View style={styles.markerContainer}>
-                <View style={[styles.markerPin, { backgroundColor: color }]}>
-                  <Text style={styles.markerText}>
+                <View style={[styles.markerPin, { backgroundColor: color, borderColor: colors.background }]}>
+                  <Text style={[styles.markerText, { color: colors.textInverse }]}>
                     {location.crowdData.count}
                   </Text>
                 </View>
@@ -139,7 +141,7 @@ export default function MapViewScreen({ navigation }) {
       {/* Map Controls */}
       <View style={styles.controlsContainer}>
         <TouchableOpacity
-          style={styles.controlButton}
+          style={[styles.controlButton, { backgroundColor: colors.mapControlBackground }]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             setMapType(mapType === 'standard' ? 'satellite' : 'standard');
@@ -152,19 +154,19 @@ export default function MapViewScreen({ navigation }) {
       </View>
 
       {/* Legend */}
-      <View style={styles.legend}>
-        <Text style={styles.legendTitle}>Crowd Level</Text>
+      <View style={[styles.legend, { backgroundColor: colors.mapLegendBackground }]}>
+        <Text style={[styles.legendTitle, { color: colors.text }]}>Crowd Level</Text>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: '#4CAF50' }]} />
-          <Text style={styles.legendText}>Low</Text>
+          <Text style={[styles.legendText, { color: colors.textSecondary }]}>Low</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: '#FF9800' }]} />
-          <Text style={styles.legendText}>Medium</Text>
+          <Text style={[styles.legendText, { color: colors.textSecondary }]}>Medium</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: '#F44336' }]} />
-          <Text style={styles.legendText}>High</Text>
+          <Text style={[styles.legendText, { color: colors.textSecondary }]}>High</Text>
         </View>
       </View>
 
@@ -180,7 +182,10 @@ export default function MapViewScreen({ navigation }) {
           ]}
         >
           <LinearGradient
-            colors={['rgba(26, 26, 46, 0.98)', 'rgba(22, 33, 62, 0.98)']}
+            colors={[
+              isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+              isDark ? 'rgba(22, 33, 62, 0.98)' : 'rgba(245, 245, 247, 0.98)',
+            ]}
             style={styles.cardGradient}
           >
             <TouchableOpacity
@@ -192,13 +197,13 @@ export default function MapViewScreen({ navigation }) {
                   {isPinned(selectedLocation.id) && (
                     <Text style={styles.cardPinnedBadge}>⭐</Text>
                   )}
-                  <Text style={styles.cardTitle}>{selectedLocation.name}</Text>
+                  <Text style={[styles.cardTitle, { color: colors.text }]}>{selectedLocation.name}</Text>
                 </View>
                 <TouchableOpacity
                   onPress={handleCardClose}
-                  style={styles.closeButton}
+                  style={[styles.closeButton, { backgroundColor: colors.buttonBackground }]}
                 >
-                  <Text style={styles.closeButtonText}>✕</Text>
+                  <Text style={[styles.closeButtonText, { color: colors.text }]}>✕</Text>
                 </TouchableOpacity>
               </View>
               
@@ -214,16 +219,16 @@ export default function MapViewScreen({ navigation }) {
                       {getCrowdLevelText(selectedLocation.crowdData.level)}
                     </Text>
                   </View>
-                  <Text style={styles.cardCount}>
+                  <Text style={[styles.cardCount, { color: colors.text }]}>
                     {selectedLocation.crowdData.count} people
                   </Text>
                 </View>
                 {selectedLocation.crowdData.occupancyPercent !== null && (
-                  <Text style={styles.cardOccupancy}>
+                  <Text style={[styles.cardOccupancy, { color: colors.textSecondary }]}>
                     {selectedLocation.crowdData.occupancyPercent.toFixed(1)}% occupied
                   </Text>
                 )}
-                <Text style={styles.cardDescription}>
+                <Text style={[styles.cardDescription, { color: colors.textSecondary }]}>
                   {selectedLocation.description}
                 </Text>
               </View>
@@ -250,7 +255,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   controlButton: {
-    backgroundColor: 'rgba(26, 26, 46, 0.9)',
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -270,7 +274,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 100,
     left: 16,
-    backgroundColor: 'rgba(26, 26, 46, 0.9)',
     padding: 12,
     borderRadius: 12,
     zIndex: 1,
@@ -281,7 +284,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   legendTitle: {
-    color: '#fff',
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 8,
@@ -298,7 +300,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   legendText: {
-    color: '#e0e0e0',
     fontSize: 11,
   },
   markerContainer: {
@@ -311,7 +312,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#fff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
@@ -319,7 +319,6 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   markerText: {
-    color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -364,19 +363,16 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
     flex: 1,
   },
   closeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
-    color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -399,17 +395,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   cardCount: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
   cardOccupancy: {
-    color: '#e0e0e0',
     fontSize: 15,
     fontWeight: '500',
   },
   cardDescription: {
-    color: '#e0e0e0',
     fontSize: 14,
     lineHeight: 20,
   },
