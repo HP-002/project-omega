@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { createMockWebSocket } from '../services/mockWebSocket';
-import { USE_MOCK_DATA } from '../config/websocket';
 import { LOCATIONS, getLocationIdByName, calculateCrowdLevel } from '../constants/Locations';
 
 const WebSocketContext = createContext(null);
@@ -25,58 +24,8 @@ export const WebSocketProvider = ({ children }) => {
   const realWebSocket = useWebSocket();
   const mockWSRef = useRef(null);
 
-  // Handle mock WebSocket
-  useEffect(() => {
-    if (USE_MOCK_DATA) {
-      // Only create mock WebSocket if it doesn't exist
-      if (!mockWSRef.current) {
-        mockWSRef.current = createMockWebSocket(
-          (data) => {
-            // Handle incoming messages (can be array or single object)
-            const messages = Array.isArray(data) ? data : [data];
-            
-            messages.forEach(message => {
-              const locationId = getLocationIdByName(message.location_name);
-              if (locationId) {
-                setCrowdData(prev => ({
-                  ...prev,
-                  [locationId]: {
-                    count: message.people_detected,
-                    level: calculateCrowdLevel(message.occupancy_percent),
-                    occupancyPercent: message.occupancy_percent,
-                    lastUpdated: new Date(message.timestamp),
-                    locationName: message.location_name,
-                  },
-                }));
-              }
-            });
-          },
-          () => {
-            setIsConnected(true);
-            setError(null);
-          },
-          (err) => {
-            setError(err);
-            setIsConnected(false);
-          },
-          () => {
-            setIsConnected(false);
-          }
-        );
-      }
-
-      return () => {
-        if (mockWSRef.current) {
-          mockWSRef.current.disconnect();
-          mockWSRef.current = null;
-        }
-      };
-    }
-  }, []); // Empty dependency array - only run once
-
   // Handle real WebSocket
   useEffect(() => {
-    if (!USE_MOCK_DATA) {
       const unsubscribe = realWebSocket.onMessage((message) => {
         // Handle incoming messages (can be array or single object)
         const messages = Array.isArray(message) ? message : [message];
@@ -115,8 +64,7 @@ export const WebSocketProvider = ({ children }) => {
         unsubscribe();
         clearInterval(interval);
       };
-    }
-  }, [USE_MOCK_DATA]); // Only depend on USE_MOCK_DATA
+  }, []);
 
   const getCrowdData = useCallback((locationId) => {
     return crowdData[locationId] || {

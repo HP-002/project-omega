@@ -3,8 +3,8 @@
 export const LOCATIONS = [
   {
     id: 'flint',
-    name: 'Flint Hall',
-    description: 'Study area in Flint Hall',
+    name: 'Flint Loop',
+    description: 'Study area in Flint Loop',
     image: null, // Will be set when image file is added
     coordinates: {
       latitude: 43.0014,
@@ -13,8 +13,8 @@ export const LOCATIONS = [
   },
   {
     id: 'ow',
-    name: 'O\'Brian Hall',
-    description: 'Study space in O\'Brian Hall',
+    name: 'One World',
+    description: 'Study space in One World',
     image: null, // Add require('../assets/locations/obrian.jpg') when image is added
     coordinates: {
       latitude: 43.0018,
@@ -43,8 +43,8 @@ export const LOCATIONS = [
   },
   {
     id: 'tims',
-    name: 'Tim Hortons Study Area',
-    description: 'Study space near Tim Hortons',
+    name: 'Tim Hortons',
+    description: 'Tim Hortons',
     image: null, // Add require('../assets/locations/tim-hortons.jpg') when image is added
     coordinates: {
       latitude: 43.0012,
@@ -101,18 +101,17 @@ export const getCrowdLevelText = (level) => {
 // Map location names to IDs (case-insensitive)
 export const getLocationIdByName = (locationName) => {
   const nameMap = {
-    'flint hall': 'flint',
+    'flint loop': 'flint',
     'flint': 'flint',
-    'o\'brian hall': 'ow',
-    'obrian hall': 'ow',
-    'o\'brian': 'ow',
-    'obrian': 'ow',
-    'student union': 'su',
+    'one world': 'ow',
+    'ow': 'ow',
+    'student union 1': 'su',
+    'student union 2': 'su',
+    'student union 3': 'su',
     'su': 'su',
     'paula plaza': 'paula',
     'paula': 'paula',
     'tim hortons': 'tims',
-    'tim hortons study area': 'tims',
     'tims': 'tims',
   };
 

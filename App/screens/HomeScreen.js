@@ -16,7 +16,8 @@ import { USE_MOCK_DATA } from '../config/websocket';
 import { getCrowdLevelColor, getCrowdLevelText } from '../constants/Locations';
 // Use Expo Go compatible versions (React Native Animated API)
 import AnimatedLocationCard from '../components/AnimatedLocationCardExpoGo';
-import PulseIndicator from '../components/PulseIndicatorExpoGo';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 export default function HomeScreen({ navigation }) {
   const { isConnected, getLocationsWithCrowd, crowdData, error, reconnectAttempts } = useCrowdData();
@@ -29,26 +30,26 @@ export default function HomeScreen({ navigation }) {
   // Updates automatically when crowdData changes
   const locations = useMemo(() => {
     let locationsWithCrowd = getLocationsWithCrowd();
-    
+
     // Filter to show only pinned if filter is active
     if (showPinnedOnly) {
       locationsWithCrowd = locationsWithCrowd.filter(loc => isPinned(loc.id));
     }
-    
+
     // Sort: pinned first, then by crowd level (low first)
     locationsWithCrowd.sort((a, b) => {
       const aPinned = isPinned(a.id);
       const bPinned = isPinned(b.id);
-      
+
       // Pinned items come first
       if (aPinned && !bPinned) return -1;
       if (!aPinned && bPinned) return 1;
-      
+
       // Then sort by crowd level
       const order = { low: 0, medium: 1, high: 2, unknown: 3 };
       return order[a.crowdData.level] - order[b.crowdData.level];
     });
-    
+
     return locationsWithCrowd;
   }, [getLocationsWithCrowd, crowdData, showPinnedOnly, isPinned]);
 
@@ -99,77 +100,68 @@ export default function HomeScreen({ navigation }) {
       style={styles.container}
     >
       <View style={styles.header}>
-        <View style={styles.titleContainer}>
-          <Text style={styles.emoji}>📍</Text>
-          <Text style={styles.title}>Find Your Study Space</Text>
+        <View style={styles.topRow}>
+          <View style={styles.titleContainer}>
+            <Ionicons name="location-sharp" style={styles.icon} />
+            <Text style={styles.title}>Find Your Study Space</Text>
+          </View>
+          <View style={styles.statusIcon}>
+            {isConnected ? (
+              <Ionicons name="cloud-done" size={20} color="#6BEA8E" />
+            ) : (
+              <Ionicons name="cloud-offline" size={20} color="#FF6B6B" />
+            )}
+          </View>
         </View>
         <Text style={styles.subtitle}>
           Real-time crowd levels at UB locations
         </Text>
-        
-        {/* Filter and View Toggle */}
-        <View style={styles.filterContainer}>
-          <Animated.View style={{ transform: [{ scale: filterScale }] }}>
-            <TouchableOpacity
-              style={[styles.filterButton, showPinnedOnly && styles.filterButtonActive]}
-              onPress={handleFilterToggle}
-            >
-              <Text style={[styles.filterText, showPinnedOnly && styles.filterTextActive]}>
-                {showPinnedOnly ? '📌 Pinned Only' : '📌 Show All'}
-              </Text>
-              {pinnedLocations.length > 0 && (
-                <View style={styles.pinCount}>
-                  <Text style={styles.pinCountText}>{pinnedLocations.length}</Text>
+
+        <View style={styles.actionsRow}>
+          {pinnedLocations.length > 0 && (
+            <Animated.View style={{ transform: [{ scale: filterScale }] }}>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  styles.pinnedButton,
+                  showPinnedOnly && styles.actionButtonActive,
+                ]}
+                onPress={handleFilterToggle}
+              >
+                <MaterialCommunityIcons
+                  name="pin"
+                  size={16}
+                  color={showPinnedOnly ? '#0f3460' : 'white'}
+                />
+                <Text
+                  style={[
+                    styles.actionButtonText,
+                    showPinnedOnly && styles.actionButtonTextActive,
+                  ]}
+                >
+                  Pinned
+                </Text>
+                <View style={styles.badge}>
+                  <Text
+                    style={[
+                      styles.badgeText,
+                      showPinnedOnly && styles.badgeTextActive,
+                    ]}
+                  >
+                    {pinnedLocations.length}
+                  </Text>
                 </View>
-              )}
-            </TouchableOpacity>
-          </Animated.View>
-          
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+
           <TouchableOpacity
-            style={styles.mapButton}
+            style={[styles.actionButton, styles.mapButton]}
             onPress={handleViewModeToggle}
           >
-            <Text style={styles.mapButtonText}>🗺️ Map</Text>
+            <Ionicons name="map" size={16} color="#0f3460" />
+            <Text style={[styles.actionButtonText, styles.mapButtonText]}>Map</Text>
           </TouchableOpacity>
-        </View>
-        
-        {/* Mock Data Indicator */}
-        {USE_MOCK_DATA && (
-          <View style={styles.mockIndicator}>
-            <Text style={styles.mockText}>🔧 TEST MODE: Using Mock Data</Text>
-          </View>
-        )}
-        
-        {/* WebSocket Connection Status */}
-        <View style={styles.connectionStatus}>
-          {isConnected ? (
-            <PulseIndicator color="#4CAF50" size={10} />
-          ) : (
-            <View style={[styles.statusDot, { backgroundColor: '#F44336' }]} />
-          )}
-          <Text style={styles.statusText}>
-            {isConnected ? '🟢 Live' : error ? '🔴 Disconnected' : '🟡 Connecting...'}
-          </Text>
-          {!isConnected && reconnectAttempts > 0 && (
-            <Text style={styles.reconnectText}>
-              Reconnecting... ({reconnectAttempts}/5)
-            </Text>
-          )}
-        </View>
-
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <View style={[styles.statDot, { backgroundColor: '#4CAF50' }]} />
-            <Text style={styles.statText}>Low</Text>
-          </View>
-          <View style={styles.statItem}>
-            <View style={[styles.statDot, { backgroundColor: '#FF9800' }]} />
-            <Text style={styles.statText}>Medium</Text>
-          </View>
-          <View style={styles.statItem}>
-            <View style={[styles.statDot, { backgroundColor: '#F44336' }]} />
-            <Text style={styles.statText}>High</Text>
-          </View>
         </View>
       </View>
 
@@ -205,142 +197,99 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: 16,
-    paddingTop: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 0,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 0,
   },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
   },
-  emoji: {
-    fontSize: 24,
+  icon: {
+    fontSize: 18,
     marginRight: 8,
+    color: '#fff',
   },
   title: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
   },
   subtitle: {
     fontSize: 14,
     color: '#e0e0e0',
-    marginBottom: 12,
+    marginBottom: 0,
   },
-  filterContainer: {
-    marginBottom: 12,
-    flexDirection: 'row',
-    gap: 12,
+  statusIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  filterButton: {
+  actionsRow: {
+    marginTop: 8,
+    marginBottom: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
+    gap: 10,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.2)',
-    flex: 1,
+  },
+  pinnedButton: {
+    maxWidth: 130,
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  actionButtonActive: {
+    backgroundColor: '#fff',
+    borderColor: '#fff',
   },
   mapButton: {
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minWidth: 80,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderColor: 'transparent',
   },
   mapButtonText: {
-    color: '#4CAF50',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#0f3460',
   },
-  filterButtonActive: {
-    backgroundColor: 'rgba(255, 193, 7, 0.2)',
-    borderColor: '#FFC107',
+  actionButtonTextActive: {
+    color: '#0f3460',
   },
-  filterText: {
-    color: '#e0e0e0',
-    fontSize: 14,
-    fontWeight: '600',
-    flex: 1,
-  },
-  filterTextActive: {
-    color: '#FFC107',
-  },
-  pinCount: {
-    backgroundColor: '#FFC107',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+  badge: {
+    marginLeft: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
-    marginLeft: 8,
+    paddingHorizontal: 4,
   },
-  pinCountText: {
-    color: '#1a1a2e',
-    fontSize: 12,
+  badgeText: {
+    color: '#fff',
+    fontSize: 11,
     fontWeight: 'bold',
   },
-  mockIndicator: {
-    backgroundColor: '#FF9800',
-    padding: 8,
-    borderRadius: 8,
-    marginBottom: 12,
-    alignItems: 'center',
-  },
-  mockText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    marginTop: 8,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  statDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 6,
-  },
-  statText: {
-    color: '#e0e0e0',
-    fontSize: 12,
-  },
-  connectionStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 8,
-    padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  statusText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-    flex: 1,
-  },
-  reconnectText: {
-    color: '#FF9800',
-    fontSize: 10,
-    marginLeft: 8,
+  badgeTextActive: {
+    color: '#0f3460',
   },
   list: {
     padding: 16,

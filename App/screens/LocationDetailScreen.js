@@ -13,6 +13,11 @@ import * as Haptics from 'expo-haptics';
 import { useCrowdData } from '../contexts/WebSocketContext';
 import { useFavorites } from '../contexts/FavoritesContext';
 import { getCrowdLevelColor, getCrowdLevelText } from '../constants/Locations';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 export default function LocationDetailScreen({ route, navigation }) {
   const { location } = route.params;
@@ -112,10 +117,14 @@ export default function LocationDetailScreen({ route, navigation }) {
   const crowdText = getCrowdLevelText(crowdData.level);
 
   return (
-    <ScrollView style={styles.container}>
-      <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f3460']}
-        style={styles.gradient}
+    <LinearGradient
+      colors={['#1a1a2e', '#16213e', '#0f3460']}
+      style={styles.gradient}
+    >
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
         <Animated.View
           style={[
@@ -138,14 +147,32 @@ export default function LocationDetailScreen({ route, navigation }) {
                 style={styles.placeholderGradient}
               >
                 <View style={styles.placeholderIcon}>
-                  <Text style={styles.placeholderIconText}>🏛️</Text>
+                  <FontAwesome5 name="surprise" size={24} color="white" />
                 </View>
-                <Text style={styles.placeholderText}>{location.name}</Text>
               </LinearGradient>
             </View>
           )}
           <View style={styles.imageOverlay}>
-            <Text style={styles.locationName}>{location.name}</Text>
+            <View style={styles.overlayRow}>
+              <Text style={styles.locationName} numberOfLines={2}>
+                {location.name}
+              </Text>
+              <AnimatedTouchableOpacity
+                style={[
+                  styles.pinButton,
+                  pinned && styles.pinButtonActive,
+                  { transform: [{ scale: pinScale }] },
+                ]}
+                onPress={handlePinPress}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name={pinned ? 'pin' : 'pin-outline'}
+                  size={18}
+                  color={pinned ? '#0f3460' : '#ffffff'}
+                />
+              </AnimatedTouchableOpacity>
+            </View>
           </View>
         </Animated.View>
 
@@ -158,23 +185,21 @@ export default function LocationDetailScreen({ route, navigation }) {
             },
           ]}
         >
-          {/* Pin Button Section */}
-          <Animated.View style={{ transform: [{ scale: pinScale }] }}>
-            <TouchableOpacity
-              style={[styles.pinSection, pinned && styles.pinSectionActive]}
-              onPress={handlePinPress}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.pinSectionIcon}>{pinned ? '📌' : '📍'}</Text>
-              <Text style={[styles.pinSectionText, pinned && styles.pinSectionTextActive]}>
-                {pinned ? 'Pinned to Favorites' : 'Pin to Favorites'}
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>👥 Crowd Level</Text>
-            <View style={styles.crowdIndicator}>
+            <Text style={styles.sectionTitle}><Ionicons name="people" color="white" size={18} />  Crowd Level</Text>
+            <View style={styles.crowdRow}>
+              <View style={styles.crowdInfoBlock}>
+                <View style={styles.crowdInfo}>
+                  <Text style={styles.crowdCount}>
+                    {crowdData.count} people detected
+                  </Text>
+                  {crowdData.occupancyPercent !== null && (
+                    <Text style={styles.occupancyPercent}>
+                      {crowdData.occupancyPercent.toFixed(1)}% occupied
+                    </Text>
+                  )}
+                </View>
+              </View>
               <Animated.View
                 style={[
                   styles.crowdBadge,
@@ -184,29 +209,16 @@ export default function LocationDetailScreen({ route, navigation }) {
               >
                 <Text style={styles.crowdText}>{crowdText}</Text>
               </Animated.View>
-              <View style={styles.crowdInfo}>
-                <Text style={styles.crowdCount}>
-                  {crowdData.count} people detected
-                </Text>
-                {crowdData.occupancyPercent !== null && (
-                  <Text style={styles.occupancyPercent}>
-                    {crowdData.occupancyPercent.toFixed(1)}% occupied
-                  </Text>
-                )}
-                <Text style={styles.crowdSubtext}>
-                  {isConnected ? '🟢 Live via YOLO' : '📡 Connecting...'}
-                </Text>
-              </View>
             </View>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📝 Description</Text>
+            <Text style={styles.sectionTitle}><Ionicons name="information-circle" color="white" size={18} /> Description</Text>
             <Text style={styles.description}>{location.description}</Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🕐 Last Updated</Text>
+            <Text style={styles.sectionTitle}><Ionicons name="time" size={18} color="white" /> Last Updated</Text>
             <View style={styles.timeContainer}>
               <Text style={styles.timeText}>
                 {formatTime(crowdData.lastUpdated)}
@@ -221,35 +233,32 @@ export default function LocationDetailScreen({ route, navigation }) {
             </View>
           </View>
 
-          <View style={styles.connectionInfo}>
-            <View style={[styles.connectionDot, { backgroundColor: isConnected ? '#4CAF50' : '#F44336' }]} />
-            <Text style={styles.connectionText}>
-              {isConnected ? 'Connected to WebSocket' : 'Disconnected - Reconnecting...'}
-            </Text>
-          </View>
-
           <View style={styles.infoBox}>
             <Text style={styles.infoText}>
               💡 Crowd levels are updated in real-time using YOLO object detection
             </Text>
           </View>
         </Animated.View>
-      </LinearGradient>
-    </ScrollView>
+      </ScrollView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
-  },
   gradient: {
     flex: 1,
   },
+  scroll: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
   imageContainer: {
     width: '100%',
-    height: 300,
+    height: 250,
     position: 'relative',
   },
   image: {
@@ -270,7 +279,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   placeholderIcon: {
-    marginBottom: 12,
+    marginBottom: 15,
   },
   placeholderIconText: {
     fontSize: 64,
@@ -289,10 +298,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     padding: 20,
   },
+  overlayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
   locationName: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
+    flex: 1,
+  },
+  pinButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  pinButtonActive: {
+    backgroundColor: '#fff',
   },
   content: {
     padding: 20,
@@ -325,24 +350,36 @@ const styles = StyleSheet.create({
     color: '#FFC107',
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 35,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#fff',
     marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+    paddingBottom: 5,
   },
-  crowdIndicator: {
+  crowdRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 16,
   },
+  crowdInfoBlock: {
+    flex: 1,
+  },
+  crowdLevelText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 8,
+  },
   crowdBadge: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 5,
     borderRadius: 20,
-    minWidth: 80,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
