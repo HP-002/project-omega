@@ -1,6 +1,6 @@
-# Project Omega – Quickstart
+# CrowdSense – Quickstart
 
-Project Omega is composed of three cooperating services:
+CrowdSense is composed of three cooperating services:
 
 - **Server (`Server/`)**: FastAPI backend that accepts inference updates from the model, transforms them, and streams simplified occupancy payloads to clients over WebSockets.
 - **App (`App/`)**: Expo React Native front end that visualizes live occupancy data, offering list and map modes with favorites and theming.
